@@ -1,0 +1,38 @@
+{
+  "name": "webrtc_conference_desktop",
+  "version": "1.0.0",
+  "description": "WebRTC 桌面端会议与共享白板应用",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "electron-prompt": "^1.7.0",
+    "path-browserify": "^1.0.1",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1"
+  },
+  "devDependencies": {
+    "electron": "^34.3.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.zypNB123.webrtc_conference_desktop",
+    "productName": "webrtc_conference_desktop",
+    "files": [
+      "**/*"
+    ],
+    "directories": {
+      "buildResources": "assets"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "electronDownload": {
+      "mirror": "https://npmmirror.com/mirrors/electron/"
+    }
+  }
+}

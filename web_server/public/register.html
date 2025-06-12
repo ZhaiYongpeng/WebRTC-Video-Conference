@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>注册 - 视频会议系统</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <div class="container" style="max-width: 400px; margin: 50px auto">
+      <h2>用户注册</h2>
+      <form id="registerForm">
+        <div style="margin-bottom: 10px">
+          <input
+            type="text"
+            id="username"
+            placeholder="用户名"
+            required
+            style="width: 100%; padding: 8px"
+          />
+        </div>
+        <div style="margin-bottom: 10px">
+          <input
+            type="password"
+            id="password"
+            placeholder="密码"
+            required
+            style="width: 100%; padding: 8px"
+          />
+        </div>
+        <div style="margin-bottom: 10px">
+          <input
+            type="password"
+            id="confirmPassword"
+            placeholder="确认密码"
+            required
+            style="width: 100%; padding: 8px"
+          />
+        </div>
+        <button type="submit" style="width: 100%; padding: 10px">注册</button>
+      </form>
+      <p style="margin-top: 15px; text-align: center">
+        已有账号？<a href="login.html">立即登录</a>
+      </p>
+    </div>
+
+    <!-- 半透明遮罩层，阻止后面内容点击 -->
+    <div id="custom-alert-overlay"></div>
+
+    <!-- 弹窗容器 -->
+    <div id="custom-alert-box">
+      <!-- 可选标题，不需要也可删掉这行 -->
+      <h3 id="custom-alert-title">提示</h3>
+
+      <!-- 弹窗消息 -->
+      <div id="custom-alert-message">这里显示提示内容</div>
+
+      <!-- 按钮区域 -->
+      <div>
+        <button id="custom-alert-ok">确定</button>
+      </div>
+    </div>
+
+    <script>
+      // 通用验证方法
+      const validators = {
+        username: (value) => /^[a-zA-Z0-9_-]{3,16}$/.test(value),
+        password: (value) => /^[A-Za-z\d]{6,20}$/.test(value),
+        roomId: (value) => /^[A-Z0-9]{4,12}$/i.test(value),
+      };
+      // ==================== 注册逻辑 ====================
+      const registerForm = document.getElementById("registerForm");
+      if (registerForm) {
+        registerForm.addEventListener("submit", async function (e) {
+          e.preventDefault();
+
+          const username = document.getElementById("username").value.trim();
+          const password = document.getElementById("password").value.trim();
+          const confirmPassword = document
+            .getElementById("confirmPassword")
+            .value.trim();
+
+          // 前端验证
+          if (!username || !password || !confirmPassword) {
+            showAlert("所有字段不能为空");
+            console.log("验证失败：字段为空");
+            return;
+          }
+
+          if (!validators.username(username)) {
+            showAlert("用户名需为3-16位，仅限字母、数字、下划线或减号");
+            console.log("验证失败：用户名格式无效", username);
+            return;
+          }
+
+          if (!validators.password(password)) {
+            showAlert("密码需为6-20位，包含字母或数字");
+            console.log("验证失败：密码格式无效", password);
+            return;
+          }
+
+          if (password !== confirmPassword) {
+            showAlert("两次输入的密码不一致");
+            console.log("验证失败：密码不匹配");
+            return;
+          }
+
+          try {
+            const btn = this.querySelector('button[type="submit"]');
+            btn.disabled = true;
+            btn.textContent = "注册中...";
+
+            const res = await fetch("/api/register", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ username, password }),
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message);
+
+            showAlert("注册成功，请登录");
+            location.href = "login.html";
+          } catch (err) {
+            showAlert(err.message);
+            console.error("注册错误:", err.message);
+          } finally {
+            const btn = this.querySelector('button[type="submit"]');
+            if (btn) {
+              btn.disabled = false;
+              btn.textContent = "注册";
+            }
+          }
+        });
+      }
+      /**
+       * showAlert - 简单的自定义提示框
+       * @param {string} message  要显示的文本
+       * @param {Function} callback  用户点击“确定”后要执行的回调（可为 null）
+       */
+      function showAlert(message, callback) {
+        const overlay = document.getElementById("custom-alert-overlay");
+        const box = document.getElementById("custom-alert-box");
+        const title = document.getElementById("custom-alert-title");
+        const msgElem = document.getElementById("custom-alert-message");
+        const btn = document.getElementById("custom-alert-ok");
+
+        if (!overlay || !box || !title || !msgElem || !btn) {
+          // 如果页面上没有找到所需元素，则退化回原生 alert
+          window.alert(message);
+          if (typeof callback === "function") {
+            callback();
+          }
+          return;
+        }
+
+        // 1. 设置要显示的消息（如果想隐藏标题，可在这里把 title.style.display = "none"）
+        title.innerText = "提示"; // 你可以替换成动态标题，或固定为“提示”
+        msgElem.innerText = message;
+
+        // 2. 显示遮罩层和弹窗
+        overlay.style.display = "block";
+        box.style.display = "block";
+
+        // 3. 给“确定”按钮绑定一次性事件
+        const handler = function () {
+          // 隐藏遮罩与弹窗
+          overlay.style.display = "none";
+          box.style.display = "none";
+          // 移除当前绑定，避免重复触发
+          btn.removeEventListener("click", handler);
+          // 执行回调
+          if (typeof callback === "function") {
+            callback();
+          }
+        };
+
+        btn.addEventListener("click", handler);
+      }
+    </script>
+  </body>
+</html>

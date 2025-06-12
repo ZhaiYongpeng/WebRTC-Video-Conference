@@ -29,7 +29,7 @@ cd WebRTC-Video-Conference
 ### 2.网页端部署
 安装依赖：
 ```bash
-cd server
+cd web_server
 npm install
 ```
 
@@ -37,7 +37,7 @@ npm install
 ```bash
 node server.js
 ```
-服务器默认监听 http://localhost:8080
+服务器/网页端默认监听 http://localhost:8080
 
 ### 3.桌面端（Electron）打包
 安装依赖并打包：

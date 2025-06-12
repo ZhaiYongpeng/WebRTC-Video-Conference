@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>视频会议系统</title>
+    <link rel="stylesheet" href="css/style.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.2.4/fabric.min.js"></script>
+  </head>
+  <body>
+    <!-- 历史会议记录模态框 -->
+    <div id="historyModal" class="modal">
+      <div class="modal-content">
+        <span class="close-btn" id="closeHistoryModal">&times;</span>
+        <h2>历史会议记录</h2>
+        <div class="history-list-container">
+          <table id="historyTable">
+            <thead>
+              <tr>
+                <th>房号</th>
+                <th>版本</th>
+                <th>开始时间</th>
+                <th>结束时间</th>
+                <th>成员</th>
+              </tr>
+            </thead>
+            <tbody id="historyList"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <!-- 历史记录详情模态框 -->
+    <div id="historyDetailModal" class="modal">
+      <div class="modal-content">
+        <span id="closeHistoryDetailModal" class="close-btn">×</span>
+        <h2>历史会议详情</h2>
+        <div class="history-detail-container">
+          <div class="history-detail-info">
+            <p><strong>房间号:</strong> <span id="detailRoomId"></span></p>
+            <p><strong>版本:</strong> <span id="detailVersion"></span></p>
+            <p><strong>创建者:</strong> <span id="detailCreator"></span></p>
+            <p>
+              <strong>参与者:</strong> <span id="detailParticipants"></span>
+            </p>
+            <p><strong>开始时间:</strong> <span id="detailCreatedAt"></span></p>
+            <p><strong>结束时间:</strong> <span id="detailEndedAt"></span></p>
+          </div>
+          <div class="history-detail-content">
+            <h3>聊天记录</h3>
+            <div id="historyChatWindow" class="chat-window"></div>
+            <h3>白板内容</h3>
+            <div class="whiteboard-area">
+              <canvas id="historyWhiteboard" width="600" height="400"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 房间操作界面 -->
+    <div id="room-control" class="room-control">
+      <div class="room-input-group">
+        <input type="text" id="roomIdInput" placeholder="输入房间号" />
+        <span class="room-hint">* 输入房间号创建/加入会议，或留空自动生成</span>
+      </div>
+      <div class="room-buttons">
+        <button id="createBtn" class="btn-primary">创建房间</button>
+        <button id="joinBtn" class="btn-primary">加入房间</button>
+        <button id="historyBtn" class="btn-secondary">查询历史会议</button>
+      </div>
+      <div id="user-info" class="user-info">
+        当前用户：<span id="currentUser"></span>
+        <button onclick="logout()" class="btn-logout">退出登录</button>
+      </div>
+    </div>
+
+    <!-- 会议界面 -->
+    <div class="container" id="meetingInterface" style="display: none">
+      <!-- 顶部控制栏 -->
+      <div class="top-control">
+        <div class="left-control">
+          <span id="currentRoom"></span>
+          <button id="copyLink" class="btn-control">复制链接</button>
+          <button id="leaveBtn" class="btn-control">离开房间</button>
+        </div>
+        <div class="center-control">
+          <button id="toggleVideo" class="btn-control">关闭视频</button>
+          <button id="toggleAudio" class="btn-control">关闭音频</button>
+          <button id="toggleAEC" class="btn-control">关闭回声消除</button>
+          <button id="toggleANS" class="btn-control">关闭噪声抑制</button>
+          <button id="toggleAGC" class="btn-control">关闭自动增益</button>
+          <button id="toggleScreenShare" class="btn-control">
+            开始共享屏幕
+          </button>
+        </div>
+        <div class="right-control">
+          <div id="member-list" class="member-list">
+            <div class="member-header">
+              成员列表（<span id="member-count">0</span>）
+            </div>
+            <div class="members" id="membersContainer"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 视频区域 -->
+      <div class="video-area">
+        <div id="localVideoContainer" class="video-container">
+          <video id="localVideo" autoplay muted playsinline></video>
+          <div class="username-label" id="localVideoName">
+            <span id="localUsername">我自己</span>
+          </div>
+          <div id="latency-local" class="latency-display">延迟: -- ms</div>
+        </div>
+        <div id="remoteVideos" class="remote-videos"></div>
+      </div>
+
+      <!-- 视频全屏预览 -->
+      <div id="video-fullscreen" class="video-fullscreen">
+        <video id="fullscreenVideo" autoplay playsinline></video>
+        <button id="closeFullscreen" class="btn-close">关闭</button>
+      </div>
+
+      <!-- 聊天与白板区域 -->
+      <div class="bottom-area">
+        <div class="chat-area">
+          <div id="chat-window" class="chat-window"></div>
+          <div class="chat-input">
+            <input type="text" id="chat-input" placeholder="请输入消息" />
+            <button id="chat-send" class="btn-primary">发送</button>
+          </div>
+        </div>
+        <div class="whiteboard-area">
+          <div class="toolbar">
+            <button id="undoBtn" class="btn-tool">撤销</button>
+            <button id="redoBtn" class="btn-tool">重做</button>
+            <button id="clearBtn" class="btn-tool">清空</button>
+            <label>颜色:</label>
+            <input type="color" id="colorPicker" value="#000000" />
+            <label>粗细:</label>
+            <input type="range" id="brushSize" min="1" max="20" value="2" />
+          </div>
+          <canvas id="whiteboard" width="800" height="600"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- 自定义提示框 -->
+    <div id="customPrompt" class="prompt-overlay">
+      <div class="prompt-box">
+        <div id="customPromptTitle" class="prompt-title"></div>
+        <input type="text" id="customPromptInput" class="prompt-input" />
+        <div class="prompt-buttons">
+          <button id="customPromptConfirm" class="btn-primary">确认</button>
+          <button id="customPromptCancel" class="btn-secondary">取消</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="customConfirm" class="prompt-overlay">
+      <div class="prompt-box">
+        <div class="prompt-title" id="customConfirmTitle">提示</div>
+        <div class="prompt-buttons">
+          <button id="customConfirmConfirm" class="btn-primary">确认</button>
+          <button id="customConfirmCancel" class="btn-secondary">取消</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 半透明遮罩层，阻止后面内容点击 -->
+    <div id="custom-alert-overlay"></div>
+
+    <!-- 弹窗容器 -->
+    <div id="custom-alert-box">
+      <!-- 可选标题，不需要也可删掉这行 -->
+      <h3 id="custom-alert-title">提示</h3>
+
+      <!-- 弹窗消息 -->
+      <div id="custom-alert-message">这里显示提示内容</div>
+
+      <!-- 按钮区域 -->
+      <div>
+        <button id="custom-alert-ok">确定</button>
+      </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="js/client.js"></script>
+  </body>
+</html>
